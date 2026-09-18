@@ -1,23 +1,55 @@
+
 pipeline {
     agent any
 
     stages {
-        stage('Validar GitHub') {
+
+        stage('Validar codigo') {
             steps {
-                echo 'Codigo obtenido de GitHub'
+                echo 'Codigo descargado de GitHub'
             }
         }
 
-        stage('Compilar') {
+        stage('Compilar Java') {
             steps {
-                echo 'Simulando compilacion'
+                bat '''
+                    if not exist dist mkdir dist
+                    javac -d dist src\\Main.java
+                '''
             }
         }
 
-        stage('Finalizar') {
+        stage('Generar binario') {
             steps {
-                echo 'Pipeline terminado'
+                bat '''
+                    jar cfe aplicacion.jar Main -C dist .
+                '''
             }
+        }
+
+        stage('Probar aplicacion') {
+            steps {
+                bat '''
+                    java -jar aplicacion.jar
+                '''
+            }
+        }
+
+        stage('Publicar artefacto') {
+            steps {
+                archiveArtifacts artifacts: 'aplicacion.jar',
+                                 fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'BUILD SUCCESS - Binario generado'
+        }
+
+        failure {
+            echo 'BUILD FAILED - Revisar logs'
         }
     }
 }
